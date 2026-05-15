@@ -9,8 +9,12 @@ import IntakeWizard from '@/pages/IntakeWizard'
 import ObjectExplorer from '@/pages/ObjectExplorer'
 import WorkingPaperWorkbench from '@/pages/WorkingPaperWorkbench'
 import AgentStudio from '@/pages/AgentStudio'
+import AgentGallery from '@/pages/AgentGallery'
 import MCPServers from '@/pages/MCPServers'
 import ScenarioTemplates from '@/pages/ScenarioTemplates'
+import LearningInbox from '@/pages/LearningInbox'
+import TemplateUpload from '@/pages/TemplateUpload'
+import RuleAuthoring from '@/pages/RuleAuthoring'
 
 export default function App() {
   return (
@@ -28,10 +32,13 @@ export default function App() {
         <Route path="special-audit" element={<SpecialAuditWorkbench />} />
         <Route path="special-audit/new" element={<SpecialAuditNew />} />
         <Route path="special-audit/:caseId" element={<SpecialAuditWorkbench />} />
-        <Route path="agents" element={<AgentStudio />} />
+        <Route path="agents" element={<AgentGallery />} />
         <Route path="agents/:code" element={<AgentStudio />} />
         <Route path="mcp" element={<MCPServers />} />
         <Route path="scenarios" element={<ScenarioTemplates />} />
+        <Route path="learning-inbox" element={<LearningInbox />} />
+        <Route path="templates/upload" element={<TemplateUpload />} />
+        <Route path="rules/new" element={<RuleAuthoring />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

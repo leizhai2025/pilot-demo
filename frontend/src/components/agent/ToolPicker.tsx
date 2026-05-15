@@ -1,5 +1,7 @@
 import { Check, Wrench, Database, Plug } from 'lucide-react'
-import type { ActionType, MCPServer } from '@/lib/types'
+import { useQuery } from '@tanstack/react-query'
+import type { ActionType, MCPServer, AgentToolEntry } from '@/lib/types'
+import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
 type ToolRef = { kind: 'action' | 'query' | 'mcp'; ref: string }
@@ -12,12 +14,15 @@ interface Props {
   disabled?: boolean
 }
 
-const BUILTIN_QUERIES = [
-  { ref: 'get_trial_balance', label: '查询试算平衡表', description: '按期间读取科目余额' },
-  { ref: 'get_vouchers_by_account', label: '查询凭证', description: '按科目编号读取凭证明细' },
-]
+export default function ToolPicker({ selected, onChange, mcpServers, disabled }: Props) {
+  const { data: catalog = [] } = useQuery({
+    queryKey: ['agent-tool-catalog'],
+    queryFn: api.agentToolCatalog,
+  })
 
-export default function ToolPicker({ selected, onChange, actions, mcpServers, disabled }: Props) {
+  const queryTools = catalog.filter((t) => t.kind === 'query')
+  const actionTools = catalog.filter((t) => t.kind === 'action')
+
   const has = (kind: ToolRef['kind'], ref: string) =>
     selected.some((t) => t.kind === kind && t.ref === ref)
   const toggle = (kind: ToolRef['kind'], ref: string) => {
@@ -29,36 +34,37 @@ export default function ToolPicker({ selected, onChange, actions, mcpServers, di
 
   return (
     <div className="space-y-4">
-      <Section title="查询工具" icon={Database} hint="只读 — 从本体读取上下文">
-        {BUILTIN_QUERIES.map((q) => (
+      <Section title="它能用的查询工具" icon={Database} hint="只读 — 从本体读取上下文">
+        {queryTools.map((q) => (
           <ToolRow
             key={q.ref}
             active={has('query', q.ref)}
             onClick={() => toggle('query', q.ref)}
-            title={q.label}
+            title={q.business_name}
             subtitle={q.description}
-            badge="query"
+            raw={q.raw_name}
             disabled={disabled}
           />
         ))}
+        {queryTools.length === 0 && <Empty>无可用查询工具。</Empty>}
       </Section>
 
-      <Section title="本体操作" icon={Wrench} hint="写回 — 修改本体对象、生成异常">
-        {actions.map((a) => (
+      <Section title="它能做的本体操作" icon={Wrench} hint="写回 — 修改本体对象、生成异常">
+        {actionTools.map((a) => (
           <ToolRow
-            key={a.code}
-            active={has('action', a.code)}
-            onClick={() => toggle('action', a.code)}
-            title={a.display_name}
-            subtitle={a.description || a.code}
-            badge={a.kind}
+            key={a.ref}
+            active={has('action', a.ref)}
+            onClick={() => toggle('action', a.ref)}
+            title={a.business_name}
+            subtitle={a.description}
+            raw={a.raw_name}
             disabled={disabled}
           />
         ))}
-        {actions.length === 0 && <Empty>暂无操作类型，请到本体管理中创建。</Empty>}
+        {actionTools.length === 0 && <Empty>暂无操作类型。</Empty>}
       </Section>
 
-      <Section title="MCP 工具" icon={Plug} hint="外部集成 — 文件 / Excel / 银行系统等">
+      <Section title="外部 MCP 工具" icon={Plug} hint="外部集成 — 文件 / Excel / 银行系统等">
         {mcpServers.flatMap((srv) =>
           (srv.tools || []).map((t) => {
             const ref = `${srv.name}::${t.name}`
@@ -69,7 +75,7 @@ export default function ToolPicker({ selected, onChange, actions, mcpServers, di
                 onClick={() => srv.enabled && toggle('mcp', ref)}
                 title={`${srv.name} · ${t.name}`}
                 subtitle={t.description || ''}
-                badge={srv.transport}
+                raw={ref}
                 muted={!srv.enabled}
                 disabled={disabled || !srv.enabled}
               />
@@ -98,10 +104,10 @@ function Section({
 }
 
 function ToolRow({
-  active, onClick, title, subtitle, badge, disabled, muted,
+  active, onClick, title, subtitle, raw, disabled, muted,
 }: {
   active: boolean; onClick: () => void; title: string; subtitle: string;
-  badge: string; disabled?: boolean; muted?: boolean
+  raw: string; disabled?: boolean; muted?: boolean
 }) {
   return (
     <button
@@ -127,8 +133,8 @@ function ToolRow({
         <div className="text-sm font-medium text-slate-900 truncate">{title}</div>
         <div className="text-xs text-slate-500 truncate">{subtitle}</div>
       </div>
-      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono uppercase">
-        {badge}
+      <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 font-mono uppercase shrink-0">
+        {raw}
       </span>
     </button>
   )

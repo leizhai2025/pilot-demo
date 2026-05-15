@@ -1,6 +1,9 @@
 import type {
   ObjectType, LinkType, ActionType, ObjectInstance,
   AgentConfig, ChatResponse, MCPServer, Health, KnowledgeBundle,
+  Correction, CorrectionReasonCode, ProposeDeltaResponse, OntologyChange,
+  InboxSuggestion, InferTemplateResponse, CompiledRule, RuleCompileResponse,
+  AgentToolEntry,
 } from './types'
 
 const API = '/api'
@@ -70,5 +73,100 @@ export const api = {
   toggleMCPServer: (name: string, enabled: boolean) =>
     json<MCPServer>(`${API}/mcp/servers/${name}`, {
       method: 'PATCH', body: JSON.stringify({ enabled }),
+    }),
+
+  // ---------- Correction loop ----------
+  recordCorrection: (body: {
+    paper_id: number
+    field_path: string
+    old_value: any
+    new_value: any
+    reason_code: CorrectionReasonCode
+    reason_text?: string
+    agent_run_id?: number | null
+    user?: string
+    apply_to_paper?: boolean
+  }) => json<{ ok: boolean; correction_id: number }>(`${API}/corrections`, {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  listCorrections: (paperId?: number) => {
+    const qs = paperId ? `?paper_id=${paperId}` : ''
+    return json<Correction[]>(`${API}/corrections${qs}`)
+  },
+  proposeDelta: (correctionId: number) =>
+    json<ProposeDeltaResponse>(`${API}/corrections/${correctionId}/propose`, {
+      method: 'POST', body: '{}',
+    }),
+  applyOntologyChange: (body: {
+    correction_id?: number | null
+    kind: string
+    target_kind: string
+    target_code: string
+    scope: 'paper' | 'template' | 'firm'
+    paper_id?: number | null
+    delta: Record<string, any>
+    summary?: string
+    applied_by?: string
+  }) => json<{ ok: boolean; change_id: number }>(`${API}/ontology-changes/apply`, {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  rollbackChange: (changeId: number) =>
+    json<{ ok: boolean; rolled_back?: boolean }>(`${API}/ontology-changes/${changeId}/rollback`, {
+      method: 'POST', body: '{}',
+    }),
+  listOntologyChanges: () => json<OntologyChange[]>(`${API}/ontology-changes`),
+  learningInbox: () => json<InboxSuggestion[]>(`${API}/learning-inbox`),
+
+  // ---------- Template authoring (Excel) ----------
+  inferTemplateFromSheet: (body: {
+    sheet_name?: string
+    rows: any[][]
+    filename?: string
+  }) => json<InferTemplateResponse>(`${API}/templates/infer-from-sheet`, {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  saveTemplate: (body: any) =>
+    json<{ ok: boolean; template_id: number; template_code: string; rule_codes_saved: string[] }>(
+      `${API}/templates/save`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  // ---------- Rule authoring (NL) ----------
+  compileRule: (body: {
+    description: string
+    scope_template_code?: string | null
+    severity?: 'low' | 'medium' | 'high'
+  }) => json<RuleCompileResponse>(`${API}/rules/compile-and-preview`, {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  refineRule: (body: {
+    description: string
+    compiled: CompiledRule
+    false_positives: any[]
+  }) => json<RuleCompileResponse>(`${API}/rules/refine`, {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  saveRule: (body: {
+    compiled: CompiledRule
+    scope_template_code?: string | null
+    run_on_existing?: boolean
+  }) => json<{ ok: boolean; rule_id: number; rule_code: string; triggered: any[] }>(
+    `${API}/rules/save`,
+    { method: 'POST', body: JSON.stringify(body) },
+  ),
+
+  // ---------- Agent fork + tool catalog ----------
+  agentToolCatalog: () => json<AgentToolEntry[]>(`${API}/agent-tools/catalog`),
+  forkAgent: (body: {
+    source_code: string
+    new_code: string
+    new_name: string
+    change_description?: string
+  }) => json<AgentConfig>(`${API}/agents/fork`, {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  previewEditAgent: (body: { base_code: string; change_description: string }) =>
+    json<{ base: AgentConfig; edits: any }>(`${API}/agents/preview-edit`, {
+      method: 'POST', body: JSON.stringify(body),
     }),
 }

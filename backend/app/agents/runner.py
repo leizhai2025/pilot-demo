@@ -294,14 +294,20 @@ def dispatch_tool(name: str, args: dict[str, Any], meta: dict[str, Any], paper_i
             merged = dict(obj.data or {})
             sheet_data = dict(merged.get("sheet_data") or {})
             existing = dict(sheet_data.get(sheet_code) or {})
+            badges = set(merged.get("ai_written_paths") or [])
             if "rows" in content:
                 existing["rows"] = content["rows"]
+                for i, row in enumerate(content["rows"] or []):
+                    for k in (row or {}).keys():
+                        badges.add(f"{sheet_code}.rows[{i}].{k}")
             for k, v in content.items():
                 if k == "rows":
                     continue
                 existing[k] = v
+                badges.add(f"{sheet_code}.{k}")
             sheet_data[sheet_code] = existing
             merged["sheet_data"] = sheet_data
+            merged["ai_written_paths"] = sorted(badges)
             obj.data = merged
             obj.updated_at = datetime.utcnow()
             s.add(obj); s.commit(); s.refresh(obj)

@@ -15,6 +15,9 @@ from .ontology.router import router as ontology_router
 from .agents.router import router as agents_router
 from .mcp_registry import router as mcp_router
 from .intake.router import router as intake_router
+from .corrections.router import router as corrections_router
+from .templates.router import router as templates_router
+from .rules.router import router as rules_router
 
 app = FastAPI(title="Audit Ontology Prototype", version="0.1.0")
 
@@ -47,3 +50,6 @@ app.include_router(ontology_router, prefix="/api/ontology", tags=["ontology"])
 app.include_router(agents_router, prefix="/api", tags=["agents"])
 app.include_router(mcp_router, prefix="/api", tags=["mcp"])
 app.include_router(intake_router, prefix="/api", tags=["intake"])
+app.include_router(corrections_router, prefix="/api", tags=["corrections"])
+app.include_router(templates_router, prefix="/api", tags=["templates"])
+app.include_router(rules_router, prefix="/api", tags=["rules"])

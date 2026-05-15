@@ -13,6 +13,7 @@ import ChatPanel from '@/components/agent/ChatPanel'
 import { SheetTabs } from '@/components/workpaper/SheetTabs'
 import { SummarySheet } from '@/components/workpaper/SummarySheet'
 import { TableSheet } from '@/components/workpaper/TableSheet'
+import CorrectionLayer from '@/components/workpaper/CorrectionLayer'
 import {
   computeSummaryField, sheetAnomalyCount, sheetRowCount, isSheetFilled,
 } from '@/components/workpaper/sheet-utils'
@@ -281,6 +282,8 @@ export default function WorkingPaperWorkbench() {
                         sheet={s}
                         allSheetData={sheetData}
                         onChangeField={(fc, v) => saveSheetField(s.code, fc, v)}
+                        paperId={paper.id}
+                        paperData={paper.data}
                       />
                     )
                   }
@@ -290,6 +293,8 @@ export default function WorkingPaperWorkbench() {
                       sheet={s}
                       rows={sheetData[s.code]?.rows || []}
                       onChangeRows={(rows) => saveSheetRows(s.code, rows)}
+                      paperId={paper.id}
+                      paperData={paper.data}
                     />
                   )
                 })}
@@ -366,6 +371,9 @@ export default function WorkingPaperWorkbench() {
           />
         )}
       </div>
+
+      {/* Correction modal + promote dialog + rollback toast (all driven by zustand store) */}
+      <CorrectionLayer />
     </div>
   )
 }

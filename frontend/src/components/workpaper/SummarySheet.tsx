@@ -1,20 +1,23 @@
-import { Calculator, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react'
+import { Calculator, CheckCircle2, AlertTriangle, Sparkles, AlertOctagon } from 'lucide-react'
 import type { Sheet, SheetField } from '@/lib/types'
 import { Input, Textarea } from '@/components/ui/Input'
 import { cn, formatMoney } from '@/lib/utils'
 import { computeSummaryField } from './sheet-utils'
+import { useCorrection, aiPathSet } from '@/lib/correction-store'
 
 interface Props {
   sheet: Sheet
   allSheetData: Record<string, any>
   onChangeField: (fieldCode: string, value: any) => void
+  paperId?: number
+  paperData?: any
 }
 
-export function SummarySheet({ sheet, allSheetData, onChangeField }: Props) {
+export function SummarySheet({ sheet, allSheetData, onChangeField, paperId, paperData }: Props) {
   const sd = allSheetData?.[sheet.code] || {}
   const fields = sheet.fields || []
+  const aiPaths = aiPathSet(paperData)
 
-  // Group fields: computed totals at top (bordered card), free-form fields below.
   const computed = fields.filter((f) => f.computed)
   const free = fields.filter((f) => !f.computed)
 
@@ -46,7 +49,14 @@ export function SummarySheet({ sheet, allSheetData, onChangeField }: Props) {
             field={f}
             value={sd[f.code]}
             wide={f.type === 'text'}
+            aiWritten={aiPaths.has(`${sheet.code}.${f.code}`)}
             onSave={(v) => onChangeField(f.code, v)}
+            onMarkWrong={paperId ? () => useCorrection.getState().openModal({
+              paperId,
+              fieldPath: `${sheet.code}.${f.code}`,
+              fieldLabel: f.label,
+              oldValue: sd[f.code],
+            }) : undefined}
           />
         ))}
       </div>
@@ -59,7 +69,6 @@ function ComputedCell({
 }: { field: SheetField; allSheetData: Record<string, any> }) {
   const v = computeSummaryField(field, allSheetData)
   const num = typeof v === 'number' ? v : null
-  // Reconciliation hint for diff fields
   let tone: 'ok' | 'warn' | 'neutral' = 'neutral'
   if (field.code === 'bank_diff' || field.code === 'tb_diff') {
     tone = num != null && Math.abs(num) < 0.01 ? 'ok' : Math.abs(num ?? 0) > 1 ? 'warn' : 'neutral'
@@ -89,17 +98,38 @@ function ComputedCell({
 }
 
 function FreeField({
-  field, value, wide, onSave,
-}: { field: SheetField; value: any; wide?: boolean; onSave: (v: any) => void }) {
+  field, value, wide, aiWritten, onSave, onMarkWrong,
+}: {
+  field: SheetField
+  value: any
+  wide?: boolean
+  aiWritten?: boolean
+  onSave: (v: any) => void
+  onMarkWrong?: () => void
+}) {
   const empty = value === null || value === undefined || value === ''
   return (
     <div className={cn(wide && 'col-span-2')}>
       <div className="flex items-center gap-1.5 mb-1.5">
         <label className="text-xs font-medium text-slate-700">{field.label}</label>
-        {!empty && (
-          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-brand-50 text-brand-700 border border-brand-200">
-            <Sparkles size={9} /> AI 已填
+        {aiWritten && !empty && (
+          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+            <Sparkles size={9} /> AI 写的 · 待复核
           </span>
+        )}
+        {!aiWritten && !empty && (
+          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <CheckCircle2 size={9} /> 已确认
+          </span>
+        )}
+        {aiWritten && onMarkWrong && (
+          <button
+            onClick={onMarkWrong}
+            className="ml-auto inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded text-rose-700 hover:bg-rose-50"
+            title="把这个标记为不对"
+          >
+            <AlertOctagon size={9} /> 这不对
+          </button>
         )}
       </div>
       {field.type === 'text' ? (

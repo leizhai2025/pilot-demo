@@ -11,6 +11,9 @@ export const zh = {
     agents: '智能体工作室',
     mcp: 'MCP 工具',
     scenarios: '场景模板',
+    learningInbox: '本体升级中心',
+    templateUpload: '导入模板',
+    ruleAuthoring: '写一条规则',
   },
   common: {
     save: '保存',

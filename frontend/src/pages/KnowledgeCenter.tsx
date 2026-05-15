@@ -97,7 +97,18 @@ function TemplatesTab() {
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-slate-600">{templates.length} 份模板</div>
-        <Button size="sm" variant="outline" disabled><Plus size={14} /> 新建模板</Button>
+        <div className="flex items-center gap-2">
+          <Link to="/knowledge/intake?type=PaperTemplate">
+            <Button size="sm" variant="outline">
+              <FileText size={14} /> 粘贴文本创建
+            </Button>
+          </Link>
+          <Link to="/templates/upload">
+            <Button size="sm" variant="primary">
+              <Upload size={14} /> 上传 Excel 创建模板
+            </Button>
+          </Link>
+        </div>
       </div>
       <div className="grid grid-cols-3 gap-4">
         {templates.map((t) => {
@@ -222,6 +233,13 @@ function RulesTab({
           ))}
         </div>
         <div className="text-xs text-slate-500 ml-auto">{filtered.length} / {scopedRules.length}</div>
+        {!subscribeMode && (
+          <Link to="/rules/new">
+            <Button size="sm" variant="primary">
+              <Scale size={14} /> 写一条规则
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Card>

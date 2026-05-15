@@ -2,20 +2,45 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   Home, BookOpen, Search, ClipboardList, Bot, Plug, Sparkles, Target,
+  Inbox,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { zh } from '@/locales/zh'
 import { cn } from '@/lib/utils'
 
-const NAV = [
-  { to: '/', label: zh.nav.home, icon: Home },
-  { to: '/knowledge', label: zh.nav.knowledge, icon: BookOpen },
-  { to: '/explorer', label: zh.nav.explorer, icon: Search },
-  { to: '/workbench', label: zh.nav.workbench, icon: ClipboardList, accent: true },
-  { to: '/special-audit', label: zh.nav.specialAudit, icon: Target, accent: true },
-  { to: '/agents', label: zh.nav.agents, icon: Bot },
-  { to: '/mcp', label: zh.nav.mcp, icon: Plug },
-  { to: '/scenarios', label: zh.nav.scenarios, icon: Sparkles },
+type NavItem = {
+  to: string
+  label: string
+  icon: any
+  demo?: boolean
+}
+type NavSection = { title: string; items: NavItem[] }
+
+const SECTIONS: NavSection[] = [
+  {
+    title: '我的工作',
+    items: [
+      { to: '/', label: zh.nav.home, icon: Home },
+      { to: '/workbench', label: zh.nav.workbench, icon: ClipboardList, demo: true },
+      { to: '/special-audit', label: zh.nav.specialAudit, icon: Target, demo: true },
+    ],
+  },
+  {
+    title: '知识 & 智能体',
+    items: [
+      { to: '/knowledge', label: zh.nav.knowledge, icon: BookOpen, demo: true },
+      { to: '/agents', label: zh.nav.agents, icon: Bot, demo: true },
+    ],
+  },
+  {
+    title: '管理 / 复核',
+    items: [
+      { to: '/explorer', label: zh.nav.explorer, icon: Search },
+      { to: '/learning-inbox', label: zh.nav.learningInbox, icon: Inbox, demo: true },
+      { to: '/mcp', label: zh.nav.mcp, icon: Plug },
+      { to: '/scenarios', label: zh.nav.scenarios, icon: Sparkles },
+    ],
+  },
 ]
 
 export default function AppShell() {
@@ -35,28 +60,37 @@ export default function AppShell() {
             </div>
           </div>
         </div>
-        <nav className="px-3 flex-1 flex flex-col gap-0.5">
-          {NAV.map(({ to, label, icon: I, accent }) => {
-            const active = to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(to)
-            return (
-              <NavLink
-                key={to}
-                to={to}
-                className={cn(
-                  'group flex items-center gap-3 h-9 px-3 rounded-md text-sm transition-colors',
-                  active
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60',
-                )}
-              >
-                <I size={16} className={cn(accent && !active && 'text-brand-300')} />
-                <span>{label}</span>
-                {accent && (
-                  <span className="ml-auto text-[9px] uppercase tracking-widest text-brand-300">demo</span>
-                )}
-              </NavLink>
-            )
-          })}
+        <nav className="px-3 flex-1 flex flex-col gap-3 overflow-y-auto pb-4">
+          {SECTIONS.map((sec) => (
+            <div key={sec.title}>
+              <div className="px-3 mb-1 text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                {sec.title}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {sec.items.map(({ to, label, icon: I, demo }) => {
+                  const active = to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(to)
+                  return (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      className={cn(
+                        'group flex items-center gap-3 h-9 px-3 rounded-md text-sm transition-colors',
+                        active
+                          ? 'bg-slate-800 text-white'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800/60',
+                      )}
+                    >
+                      <I size={16} className={cn(demo && !active && 'text-brand-300')} />
+                      <span>{label}</span>
+                      {demo && (
+                        <span className="ml-auto text-[9px] uppercase tracking-widest text-brand-300">demo</span>
+                      )}
+                    </NavLink>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
         <div className="p-3 border-t border-slate-800/70 text-[11px] text-slate-400">
           <div className="flex items-center gap-2">

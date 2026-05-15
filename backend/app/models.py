@@ -123,3 +123,49 @@ class MCPServer(SQLModel, table=True):
     enabled: bool = True
     # exposed tools (seeded; in v1 we don't introspect live MCP servers)
     tools: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSON))
+
+
+# ---------- Human-in-the-loop correction tables ----------
+
+class Correction(SQLModel, table=True):
+    """One row per cell-level correction the auditor made on AI-written content.
+
+    Used as evidence both for the immediate "propose ontology delta" step and
+    for the cross-auditor 'unlearned corrections' inbox."""
+    __tablename__ = "corrections"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    paper_id: int = Field(index=True)
+    # dotted path: "summary.book_balance" or "bank_detail.rows[2].confirmation_balance"
+    field_path: str = Field(index=True)
+    old_value: Any = Field(default=None, sa_column=Column(JSON))
+    new_value: Any = Field(default=None, sa_column=Column(JSON))
+    # one of: value_wrong | source_wrong | rule_misfire | rule_missed | field_missing | other
+    reason_code: str = "other"
+    reason_text: str = ""
+    agent_run_id: Optional[int] = None
+    user: str = "anonymous"
+    # has this correction already been promoted as an OntologyChange?
+    promoted_change_id: Optional[int] = None
+    created_at: datetime = Field(default_factory=_utcnow, index=True)
+
+
+class OntologyChange(SQLModel, table=True):
+    """A delta applied to the ontology (template field, rule expression, etc.).
+
+    Stores before/after for one-click rollback. Scope determines blast radius."""
+    __tablename__ = "ontology_changes"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    # one of: template_field_source | template_add_field | rule_exception | rule_new | objecttype_new
+    kind: str = Field(index=True)
+    target_kind: str = ""                                       # PaperTemplate | AuditRule | ObjectType
+    target_code: str = ""                                       # code of the affected object
+    # one of: paper | template | firm
+    scope: str = "paper"
+    paper_id: Optional[int] = None                              # bound when scope=paper
+    delta: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    before_snapshot: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    summary: str = ""                                           # 中文 one-liner for the timeline
+    source_correction_id: Optional[int] = None
+    applied_by: str = "anonymous"
+    applied_at: datetime = Field(default_factory=_utcnow, index=True)
+    rolled_back_at: Optional[datetime] = None
